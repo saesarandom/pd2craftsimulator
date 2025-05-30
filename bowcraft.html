@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans&display=swap"
+      rel="stylesheet"
+    />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PD2 Craft Bow Simulator</title>
+    <style>
+      body {
+        font-family: Exocet, sans-serif;
+        background-color: #1a1a1a;
+        color: #c7820b;
+        padding: 10px;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+      button {
+        background-color: #3a3a3a;
+        color: white;
+        border: none;
+        padding: 15px 30px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 13px;
+        margin-bottom: 20px;
+      }
+      button:hover {
+        background-color: #4a4a4a;
+      }
+      .item-stats {
+        background-color: #000000;
+        text-align: center;
+        padding: 10px;
+        border-radius: 2px;
+        border: 1px solid #ffcc00;
+        font-family: "Open Sans";
+        line-height: 1.1;
+        display: inline-flex;
+        padding: 20px; /* Remove padding if not needed */
+        margin: 0;
+        width: fit-content;
+        position: absolute; /* Position it absolutely */
+        top: 60%; /* Center vertically */
+        left: 50%; /* Center horizontally */
+        transform: translate(-50%, -50%);
+      }
+      .stat-line {
+        margin: 4px 0;
+      }
+      .prefix {
+        color: #66ccff;
+      }
+      .suffix {
+        color: #149cd6;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>PD2 Craft Bow Simulator</h1>
+    <button onclick="generateItem()">Generate Rare Bow</button>
+    <button onclick="generateBest10()">Generate 10 Rare Bows</button>
+    <button onclick="generateBest100()">Generate 100 Rare Bows</button>
+    <button onclick="generateBest1000()">Generate 1 000 Rare Bows</button>
+    <button onclick="generateBest10000()">Generate 10 000 Rare Bows</button>
+
+    <div id="itemStats" class="item-stats" style="display: none">
+      <div id="statsContent"></div>
+    </div>
+
+    <script>
+      const prefixes = [
+        {
+          name: "Gritty",
+          stat: "+[0-74] to Maximum Damage (+0.75 per Level)",
+          level: 37,
+          freq: 7,
+          group: 105,
+        },
+        {
+          name: "Jagged",
+          stat: "+[10-20]% Enhanced Damage",
+          level: 1,
+          freq: 9,
+          group: 105,
+        },
+        {
+          name: "Deadly",
+          stat: "+[21-30]% Enhanced Damage",
+          level: 3,
+          freq: 9,
+          group: 105,
+        },
+        {
+          name: "Vicious",
+          stat: "+[31-40]% Enhanced Damage",
+          level: 6,
+          freq: 8,
+          group: 105,
+        },
+        {
+          name: "Brutal",
+          stat: "+[41-50]% Enhanced Damage",
+          level: 10,
+          freq: 8,
+          group: 105,
+        },
+        {
+          name: "Massive",
+          stat: "+[51-65]% Enhanced Damage",
+          level: 15,
+          freq: 7,
+          group: 105,
+        },
+        {
+          name: "Savage",
+          stat: "+[66-80]% Enhanced Damage",
+          level: 15,
+          freq: 7,
+          group: 105,
+        },
+        {
+          name: "Merciless",
+          stat: "+[81-100]% Enhanced Damage",
+          level: 15,
+          freq: 6,
+          group: 105,
+        },
+        {
+          name: "Ferocious",
+          stat: "+[101-200]% Enhanced Damage",
+          level: 15,
+          freq: 6,
+          group: 105,
+        },
+        {
+          name: "Cruel",
+          stat: "+[201-300]% Enhanced Damage",
+          level: 48,
+          freq: 1,
+          group: 105,
+        },
+        {
+          name: "Visceral",
+          stat: "+[301-400]% Enhanced Damage",
+          level: 69,
+          freq: 1,
+          group: 105,
+        },
+        {
+          name: "Bronze",
+          stat: "+[10-20] to Attack Rating",
+          level: 1,
+          freq: 8,
+          group: 110,
+        },
+        {
+          name: "Iron",
+          stat: "+[21-40] to Attack Rating",
+          level: 1,
+          freq: 8,
+          group: 110,
+        },
+        {
+          name: "Steel",
+          stat: "+[41-60] to Attack Rating",
+          level: 1,
+          freq: 7,
+          group: 110,
+        },
+        {
+          name: "Silver",
+          stat: "+[61-80] to Attack Rating",
+          level: 1,
+          freq: 7,
+          group: 110,
+        },
+        {
+          name: "Gold",
+          stat: "+[81-100] to Attack Rating",
+          level: 1,
+          freq: 6,
+          group: 110,
+        },
+        {
+          name: "Platinum",
+          stat: "+[101-120] to Attack Rating",
+          level: 1,
+          freq: 6,
+          group: 110,
+        },
+        {
+          name: "Meteoric",
+          stat: "+[121-150] to Attack Rating",
+          level: 1,
+          freq: 5,
+          group: 110,
+        },
+        {
+          name: "Strange",
+          stat: "+[151-300] to Attack Rating",
+          level: 1,
+          freq: 5,
+          group: 110,
+        },
+        {
+          name: "Sharp",
+          stat: "+[10-20] to Attack Rating, +[10-20]% Enhanced Damage",
+          level: 3,
+          freq: 9,
+          group: 111,
+        },
+        {
+          name: "Fine",
+          stat: "+[21-40] to Attack Rating, +[21-30]% Enhanced Damage",
+          level: 1,
+          freq: 8,
+          group: 111,
+        },
+        {
+          name: "Warrior's",
+          stat: "+[41-60] to Attack Rating, +[31-40]% Enhanced Damage",
+          level: 1,
+          freq: 8,
+          group: 111,
+        },
+        {
+          name: "Soldier's",
+          stat: "+[61-80] to Attack Rating, +[41-50]% Enhanced Damage",
+          level: 1,
+          freq: 8,
+          group: 111,
+        },
+        {
+          name: "Knight's",
+          stat: "+[81-100] to Attack Rating, +[51-65]% Enhanced Damage",
+          level: 1,
+          freq: 8,
+          group: 111,
+        },
+        {
+          name: "Lord's",
+          stat: "+[101-121] to Attack Rating, +[66-80]% Enhanced Damage",
+          level: 1,
+          freq: 8,
+          group: 111,
+        },
+        {
+          name: "King's",
+          stat: "+[121-150] to Attack Rating, +[81-100]% Enhanced Damage",
+          level: 1,
+          freq: 8,
+          group: 111,
+        },
+        {
+          name: "Screaming",
+          stat: "Hit Causes Monster to Flee 12%",
+          level: 7,
+          freq: 4,
+          group: 113,
+        },
+        {
+          name: "Serpent's",
+          stat: "+[11-20] to Mana",
+          level: 27,
+          freq: 2,
+          group: 115,
+        },
+        {
+          name: "Readiness",
+          stat: "+10% Increased Attack Speed",
+          level: 3,
+          freq: 6,
+          group: 7,
+        },
+        {
+          name: "Alacrity",
+          stat: "+20% Increased Attack Speed",
+          level: 17,
+          freq: 6,
+          group: 7,
+        },
+        { name: "Frost", stat: "+1 Cold Damage", level: 1, freq: 4, group: 10 },
+        {
+          name: "Flame",
+          stat: "+[1-2] Fire Damage",
+          level: 1,
+          freq: 4,
+          group: 12,
+        },
+        {
+          name: "Burning",
+          stat: "Adds [20-30] to [37-72] Fire Damage",
+          level: 18,
+          freq: 3,
+          group: 12,
+        },
+        {
+          name: "Shock",
+          stat: "+[1-3] Lightning Damage",
+          level: 1,
+          freq: 4,
+          group: 13,
+        },
+        {
+          name: "Craftsmanship",
+          stat: "+1 to Maximum Damage",
+          level: 1,
+          freq: 8,
+          group: 14,
+        },
+        {
+          name: "Worth",
+          stat: "+[1-2] to Minimum Damage",
+          level: 1,
+          freq: 8,
+          group: 15,
+        },
+      ];
+
+      const suffixes = [
+        {
+          name: "of Power",
+          stat: "+[1-5] to Strength",
+          level: 1,
+          freq: 8,
+          group: 20,
+        },
+        {
+          name: "of Might",
+          stat: "+[6-10] to Strength",
+          level: 5,
+          freq: 7,
+          group: 20,
+        },
+        {
+          name: "of the Ox",
+          stat: "+[11-15] to Strength",
+          level: 10,
+          freq: 6,
+          group: 20,
+        },
+        {
+          name: "of Dexterity",
+          stat: "+[1-5] to Dexterity",
+          level: 1,
+          freq: 8,
+          group: 21,
+        },
+        {
+          name: "of Skill",
+          stat: "+[6-10] to Dexterity",
+          level: 5,
+          freq: 7,
+          group: 21,
+        },
+        {
+          name: "of Accuracy",
+          stat: "+[11-15] to Dexterity",
+          level: 10,
+          freq: 6,
+          group: 21,
+        },
+        {
+          name: "of the Jackal",
+          stat: "+[1-5] to Life",
+          level: 1,
+          freq: 8,
+          group: 22,
+        },
+        {
+          name: "of the Fox",
+          stat: "+[6-15] to Life",
+          level: 3,
+          freq: 7,
+          group: 22,
+        },
+        {
+          name: "of the Wolf",
+          stat: "+[16-25] to Life",
+          level: 7,
+          freq: 6,
+          group: 22,
+        },
+        {
+          name: "of Regeneration",
+          stat: "Regenerate Mana 15%",
+          level: 15,
+          freq: 4,
+          group: 23,
+        },
+        {
+          name: "of Restoration",
+          stat: "Regenerate Mana 20%",
+          level: 25,
+          freq: 3,
+          group: 23,
+        },
+        {
+          name: "of Maiming",
+          stat: "5% Chance of Open Wounds",
+          level: 12,
+          freq: 5,
+          group: 24,
+        },
+        {
+          name: "of Slaying",
+          stat: "10% Chance of Open Wounds",
+          level: 20,
+          freq: 4,
+          group: 24,
+        },
+      ];
+
+      function rollRange(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+      }
+
+      function expandStat(stat) {
+        // Replace [min-max] ranges with actual rolled values
+        return stat.replace(/\[(\d+)-(\d+)\]/g, (match, min, max) => {
+          return rollRange(parseInt(min), parseInt(max));
+        });
+      }
+
+      function getEnhancedDamage(prefixes) {
+        let totalED = 0;
+        prefixes.forEach((prefix) => {
+          const stat = prefix.stat;
+          // Look for ALL Enhanced Damage percentages in the stat string
+          const matches = stat.matchAll(/\+\[(\d+)-(\d+)\]% Enhanced Damage/g);
+          for (const match of matches) {
+            const min = parseInt(match[1]);
+            const max = parseInt(match[2]);
+            totalED += rollRange(min, max);
+          }
+        });
+        return totalED;
+      }
+
+      function preRollAffix(affix) {
+        // Pre-roll all ranges in the stat and store the rolled version
+        const rolledStat = affix.stat.replace(
+          /\[(\d+)-(\d+)\]/g,
+          (match, min, max) => {
+            return rollRange(parseInt(min), parseInt(max));
+          }
+        );
+
+        return {
+          name: affix.name,
+          stat: rolledStat,
+          originalStat: affix.stat,
+          level: affix.level,
+          freq: affix.freq,
+          group: affix.group,
+        };
+      }
+
+      function getEnhancedDamageFromRolled(prefixes) {
+        let totalED = 0;
+        prefixes.forEach((prefix) => {
+          const stat = prefix.stat; // Use pre-rolled stat
+          // Look for ALL Enhanced Damage percentages in the rolled stat string
+          const matches = stat.matchAll(/\+(\d+)% Enhanced Damage/g);
+          for (const match of matches) {
+            totalED += parseInt(match[1]);
+          }
+        });
+        return totalED;
+      }
+
+      function selectAffixByFrequency(availableAffixes) {
+        // Calculate total frequency
+        const totalFrequency = availableAffixes.reduce(
+          (sum, affix) => sum + affix.freq,
+          0
+        );
+
+        // Generate random number between 1 and totalFrequency
+        let randomValue = Math.floor(Math.random() * totalFrequency) + 1;
+
+        // Find which affix this random value corresponds to
+        let currentSum = 0;
+        for (const affix of availableAffixes) {
+          currentSum += affix.freq;
+          if (randomValue <= currentSum) {
+            return affix;
+          }
+        }
+
+        // Fallback (should never happen)
+        return availableAffixes[0];
+      }
+
+      function generateSingleItem() {
+        const level = 90;
+        let availablePrefixes = prefixes.filter((p) => p.level <= level);
+        let availableSuffixes = suffixes.filter((s) => s.level <= level);
+
+        const numPrefixes = rollRange(2, 3);
+        const selectedPrefixes = [];
+        const usedPrefixGroups = new Set();
+
+        for (let i = 0; i < numPrefixes; i++) {
+          // Filter out affixes from already used groups
+          const validPrefixes = availablePrefixes.filter(
+            (p) => !usedPrefixGroups.has(p.group)
+          );
+
+          if (validPrefixes.length === 0) break; // No more valid prefixes
+
+          // Select affix based on frequency
+          const selectedPrefix = selectAffixByFrequency(validPrefixes);
+          selectedPrefixes.push(preRollAffix(selectedPrefix));
+          usedPrefixGroups.add(selectedPrefix.group);
+        }
+
+        const numSuffixes = rollRange(2, 3);
+        const selectedSuffixes = [];
+        const usedSuffixGroups = new Set();
+
+        for (let i = 0; i < numSuffixes; i++) {
+          // Filter out affixes from already used groups
+          const validSuffixes = availableSuffixes.filter(
+            (s) => !usedSuffixGroups.has(s.group)
+          );
+
+          if (validSuffixes.length === 0) break; // No more valid suffixes
+
+          // Select affix based on frequency
+          const selectedSuffix = selectAffixByFrequency(validSuffixes);
+          selectedSuffixes.push(preRollAffix(selectedSuffix));
+          usedSuffixGroups.add(selectedSuffix.group);
+        }
+
+        return {
+          prefixes: selectedPrefixes,
+          suffixes: selectedSuffixes,
+          enhancedDamage: getEnhancedDamageFromRolled(selectedPrefixes),
+        };
+      }
+
+      function combineEnhancedDamageFromRolled(prefixes, suffixes) {
+        let totalED = 0;
+        let newPrefixes = [];
+        let newSuffixes = [];
+
+        // Process prefixes - combine Enhanced Damage and handle complex stats
+        prefixes.forEach((prefix) => {
+          const stat = prefix.stat; // Already rolled stat
+
+          // Special handling for "Sharp" which has both Attack Rating and Enhanced Damage
+          if (
+            stat.includes("to Attack Rating") &&
+            stat.includes("% Enhanced Damage")
+          ) {
+            // Extract Enhanced Damage part
+            const edMatch = stat.match(/\+(\d+)% Enhanced Damage/);
+            if (edMatch) {
+              totalED += parseInt(edMatch[1]);
+            }
+
+            // Keep only the Attack Rating part
+            const arMatch = stat.match(/\+(\d+) to Attack Rating/);
+            if (arMatch) {
+              newPrefixes.push({
+                name: prefix.name,
+                stat: `+${arMatch[1]} to Attack Rating`,
+                level: prefix.level,
+                freq: prefix.freq,
+                group: prefix.group,
+              });
+            }
+          }
+          // Handle simple Enhanced Damage only
+          else if (stat.match(/^\+(\d+)% Enhanced Damage$/)) {
+            const match = stat.match(/\+(\d+)% Enhanced Damage/);
+            totalED += parseInt(match[1]);
+          }
+          // Keep all other prefixes as-is
+          else {
+            newPrefixes.push(prefix);
+          }
+        });
+
+        // Process suffixes (in case Enhanced Damage appears there)
+        suffixes.forEach((suffix) => {
+          const stat = suffix.stat; // Already rolled stat
+          const match = stat.match(/\+(\d+)% Enhanced Damage/);
+          if (match) {
+            totalED += parseInt(match[1]);
+          } else {
+            newSuffixes.push(suffix);
+          }
+        });
+
+        // Add combined Enhanced Damage if any was found
+        if (totalED > 0) {
+          newPrefixes.unshift({
+            name: "Combined",
+            stat: `+${totalED}% Enhanced Damage`,
+            level: 1,
+            freq: 1,
+            group: 999,
+          });
+        }
+
+        return { prefixes: newPrefixes, suffixes: newSuffixes, totalED };
+      }
+
+      function generateBest100() {
+        let bestItem = null;
+        let highestED = -1;
+
+        // Generate 100 items and find the one with highest Enhanced Damage
+        for (let i = 0; i < 100; i++) {
+          const item = generateSingleItem();
+          if (item.enhancedDamage > highestED) {
+            highestED = item.enhancedDamage;
+            bestItem = item;
+          }
+        }
+
+        // Display the best item
+        if (bestItem) {
+          displayItem(bestItem.prefixes, bestItem.suffixes, highestED);
+        }
+      }
+
+      function generateBest1000() {
+        let bestItem = null;
+        let highestED = -1;
+
+        // Generate 1000 items and find the one with highest Enhanced Damage
+        for (let i = 0; i < 1000; i++) {
+          const item = generateSingleItem();
+          if (item.enhancedDamage > highestED) {
+            highestED = item.enhancedDamage;
+            bestItem = item;
+          }
+        }
+
+        // Display the best item
+        if (bestItem) {
+          displayItem(bestItem.prefixes, bestItem.suffixes, highestED);
+        }
+      }
+
+      function generateBest10000() {
+        let bestItem = null;
+        let highestED = -1;
+
+        // Generate 1000 items and find the one with highest Enhanced Damage
+        for (let i = 0; i < 10000; i++) {
+          const item = generateSingleItem();
+          if (item.enhancedDamage > highestED) {
+            highestED = item.enhancedDamage;
+            bestItem = item;
+          }
+        }
+
+        // Display the best item
+        if (bestItem) {
+          displayItem(bestItem.prefixes, bestItem.suffixes, highestED);
+        }
+      }
+
+      function generateBest10() {
+        let bestItem = null;
+        let highestED = -1;
+
+        // Generate 10 items and find the one with highest Enhanced Damage
+        for (let i = 0; i < 10; i++) {
+          const item = generateSingleItem();
+          if (item.enhancedDamage > highestED) {
+            highestED = item.enhancedDamage;
+            bestItem = item;
+          }
+        }
+
+        // Display the best item
+        if (bestItem) {
+          displayItem(bestItem.prefixes, bestItem.suffixes, highestED);
+        }
+      }
+
+      function generateItem() {
+        const item = generateSingleItem();
+        displayItem(item.prefixes, item.suffixes, item.enhancedDamage);
+      }
+
+      function combineEnhancedDamage(prefixes, suffixes) {
+        let totalED = 0;
+        let newPrefixes = [];
+        let newSuffixes = [];
+
+        // Process prefixes - combine Enhanced Damage and handle complex stats
+        prefixes.forEach((prefix) => {
+          const stat = prefix.stat;
+
+          // Special handling for "Sharp" which has both Attack Rating and Enhanced Damage
+          if (
+            stat.includes("to Attack Rating") &&
+            stat.includes("% Enhanced Damage")
+          ) {
+            // Extract Enhanced Damage part
+            const edMatch = stat.match(/\+\[(\d+)-(\d+)\]% Enhanced Damage/);
+            if (edMatch) {
+              const min = parseInt(edMatch[1]);
+              const max = parseInt(edMatch[2]);
+              totalED += rollRange(min, max);
+            }
+
+            // Keep only the Attack Rating part
+            const arMatch = stat.match(/\+\[(\d+)-(\d+)\] to Attack Rating/);
+            if (arMatch) {
+              const arMin = parseInt(arMatch[1]);
+              const arMax = parseInt(arMatch[2]);
+              const rolledAR = rollRange(arMin, arMax);
+              newPrefixes.push({
+                name: prefix.name,
+                stat: `+${rolledAR} to Attack Rating`,
+                level: prefix.level,
+                freq: prefix.freq,
+                group: prefix.group,
+              });
+            }
+          }
+          // Handle simple Enhanced Damage only
+          else if (stat.match(/^\+\[(\d+)-(\d+)\]% Enhanced Damage$/)) {
+            const match = stat.match(/\+\[(\d+)-(\d+)\]% Enhanced Damage/);
+            const min = parseInt(match[1]);
+            const max = parseInt(match[2]);
+            totalED += rollRange(min, max);
+          }
+          // Keep all other prefixes as-is
+          else {
+            newPrefixes.push(prefix);
+          }
+        });
+
+        // Process suffixes (in case Enhanced Damage appears there)
+        suffixes.forEach((suffix) => {
+          const stat = suffix.stat;
+          const match = stat.match(/\+\[(\d+)-(\d+)\]% Enhanced Damage/);
+          if (match) {
+            const min = parseInt(match[1]);
+            const max = parseInt(match[2]);
+            totalED += rollRange(min, max);
+          } else {
+            newSuffixes.push(suffix);
+          }
+        });
+
+        // Add combined Enhanced Damage if any was found
+        if (totalED > 0) {
+          newPrefixes.unshift({
+            name: "Combined",
+            stat: `+${totalED}% Enhanced Damage`,
+            level: 1,
+            freq: 1,
+            group: 999,
+          });
+        }
+
+        return { prefixes: newPrefixes, suffixes: newSuffixes, totalED };
+      }
+
+      function displayItem(prefixes, suffixes, enhancedDamage = null) {
+        const statsDiv = document.getElementById("statsContent");
+        const itemDiv = document.getElementById("itemStats");
+        let damagemin = 17;
+        let damagemax = 87;
+
+        // Combine Enhanced Damage bonuses from pre-rolled stats
+        const combined = combineEnhancedDamageFromRolled(prefixes, suffixes);
+        const finalMinDamage = Math.floor(
+          damagemin * (1 + combined.totalED / 100)
+        );
+        const finalMaxDamage = Math.floor(
+          damagemax * (1 + combined.totalED / 100)
+        );
+
+        let html = "<strong>Rare Grand Matron Bow</strong><br>";
+        html += `Damage: ${finalMinDamage}-${finalMaxDamage}<br><br>`;
+
+        // Add prefix stats (no need to expandStat since they're already rolled)
+        combined.prefixes.forEach((prefix) => {
+          html += `<div class="stat-line prefix">${prefix.stat}</div>`;
+        });
+
+        // Add suffix stats (no need to expandStat since they're already rolled)
+        combined.suffixes.forEach((suffix) => {
+          html += `<div class="stat-line suffix">${suffix.stat}</div>`;
+        });
+
+        statsDiv.innerHTML = html;
+        itemDiv.style.display = "block";
+      }
+    </script>
+  </body>
+</html>
