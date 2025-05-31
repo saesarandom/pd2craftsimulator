@@ -72,16 +72,33 @@
     <button onclick="generateBest1000()">Generate 1 000 Rare Bows</button>
     <button onclick="generateBest10000()">Generate 10 000 Rare Bows</button>
 
-    <label style="display: block; margin: 20px 0; color: #c7820b">
+    <div
+      style="
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        color: rgb(219, 143, 2);
+        font-size: 18px;
+        font-weight: bold;
+      "
+    >
+      Crafts Attempted: <span id="craftCounter">0</span>
+    </div>
+
+    <label style="display: block; margin: 20px 0; color: #e80b4a">
       <input type="checkbox" id="corruptCheckbox" style="margin-right: 10px" />
       Corrupt
     </label>
 
-    <label style="display: block; margin: 20px 0; color: #c7820b">
+    <label style="display: block; margin: 20px 0; color: #41e20c">
       <input type="checkbox" id="puzzleCheckbox" style="margin-right: 10px" />
       Puzzle Box
     </label>
 
+    <label style="display: block; margin: 20px 0; color: rgb(201, 191, 173)">
+      <input type="checkbox" id="ohmCheckbox" style="margin-right: 10px" />
+      Ohm
+    </label>
     <div id="itemStats" class="item-stats" style="display: none">
       <div id="statsContent"></div>
     </div>
@@ -292,9 +309,23 @@
           group: 111,
         },
         {
-          name: "Screaming",
-          stat: "Hit Causes Monster to Flee 12%",
+          name: "Visionary",
+          stat: "[1-99]% Bonus to Attack Rating",
           level: 7,
+          freq: 1,
+          group: 111,
+        },
+        {
+          name: "Howling",
+          stat: "Hit Causes Monsters to Flee 18%",
+          level: 27,
+          freq: 4,
+          group: 113,
+        },
+        {
+          name: "Screaming",
+          stat: "Hit Causes Monsters to Flee 12%",
+          level: 27,
           freq: 4,
           group: 113,
         },
@@ -306,11 +337,39 @@
           group: 115,
         },
         {
+          name: "Azure",
+          stat: "Cold Resist +[5-10]%",
+          level: 27,
+          freq: 2,
+          group: 117,
+        },
+        {
+          name: "Lapis",
+          stat: "Cold Resist +[11-20]%",
+          level: 27,
+          freq: 2,
+          group: 117,
+        },
+        {
           name: "Readiness",
           stat: "+10% Increased Attack Speed",
           level: 3,
           freq: 6,
           group: 7,
+        },
+        {
+          name: "Cobalt",
+          stat: "Cold Resist +[21-30]%",
+          level: 10,
+          freq: 2,
+          group: 117,
+        },
+        {
+          name: "Crimson",
+          stat: "Fire Resist +[5-10]%",
+          level: 15,
+          freq: 3,
+          group: 118,
         },
         {
           name: "Alacrity",
@@ -526,14 +585,21 @@
         ],
       };
 
-      const socketRange = { min: 3, max: 6 };
+      function getWeightedSocketCount() {
+        const socketRange = Math.random() * 100;
+
+        if (socketRange < 30) return 3; // 30%
+        if (socketRange < 58) return 4; // 28% (30 + 28)
+        if (socketRange < 82) return 5; // 24% (58 + 24)
+        return 6; // 18% (remaining)
+      }
 
       function selectCorruption() {
         const roll = Math.random() * 100;
 
         if (roll < 25) {
           // 25% chance for sockets
-          const numSockets = rollRange(socketRange.min, socketRange.max);
+          const numSockets = getWeightedSocketCount(); // Use the weighted function instead
           return {
             type: "sockets",
             stat: `Socketed (${numSockets})`,
@@ -563,6 +629,12 @@
             stat: null,
           };
         }
+      }
+
+      let craftCounter = 0;
+
+      function updateCraftCounter() {
+        document.getElementById("craftCounter").textContent = craftCounter;
       }
 
       function rollRange(min, max) {
@@ -845,12 +917,13 @@
 
         for (let i = 0; i < 10; i++) {
           const item = generateSingleItem();
+          craftCounter++;
           if (item.enhancedDamage > highestED) {
             highestED = item.enhancedDamage;
             bestItem = item;
           }
         }
-
+        updateCraftCounter(); // Update display
         if (bestItem) {
           displayItem(
             bestItem.prefixes,
@@ -868,12 +941,13 @@
 
         for (let i = 0; i < 100; i++) {
           const item = generateSingleItem();
+          craftCounter++;
           if (item.enhancedDamage > highestED) {
             highestED = item.enhancedDamage;
             bestItem = item;
           }
         }
-
+        updateCraftCounter(); // Update display
         if (bestItem) {
           displayItem(
             bestItem.prefixes,
@@ -891,12 +965,13 @@
 
         for (let i = 0; i < 1000; i++) {
           const item = generateSingleItem();
+          craftCounter++;
           if (item.enhancedDamage > highestED) {
             highestED = item.enhancedDamage;
             bestItem = item;
           }
         }
-
+        updateCraftCounter(); // Update display
         if (bestItem) {
           displayItem(
             bestItem.prefixes,
@@ -914,12 +989,13 @@
 
         for (let i = 0; i < 10000; i++) {
           const item = generateSingleItem();
+          craftCounter++;
           if (item.enhancedDamage > highestED) {
             highestED = item.enhancedDamage;
             bestItem = item;
           }
         }
-
+        updateCraftCounter(); // Update display
         if (bestItem) {
           displayItem(
             bestItem.prefixes,
@@ -933,6 +1009,8 @@
 
       function generateItem() {
         const item = generateSingleItem();
+        craftCounter++;
+        updateCraftCounter(); // Update display
         displayItem(
           item.prefixes,
           item.suffixes,
@@ -940,6 +1018,25 @@
           item.corruption,
           item.enhancedDamage
         );
+      }
+
+      function calculateOhmDamage(corruption, puzzleBoxSockets = 0) {
+        if (!document.getElementById("ohmCheckbox").checked) return 0;
+
+        let totalSockets = 0;
+
+        // Count sockets from corruption
+        if (corruption && corruption.type === "sockets") {
+          const socketMatch = corruption.stat.match(/Socketed \((\d+)\)/);
+          if (socketMatch) {
+            totalSockets += parseInt(socketMatch[1]);
+          }
+        }
+
+        // Add puzzle box sockets if they exist
+        totalSockets += puzzleBoxSockets;
+
+        return totalSockets * 45; // 45% Enhanced Damage per socket
       }
 
       function displayItem(
@@ -954,25 +1051,37 @@
         let damagemin = 17;
         let damagemax = 87;
 
-        // Combine Enhanced Damage bonuses
+        // Track if item has sockets from corruption BEFORE processing anything
+        let hasSocketsFromCorruption =
+          corruption && corruption.type === "sockets";
+
+        // Calculate puzzle box sockets
+        let puzzleSockets = 0;
+        if (
+          document.getElementById("puzzleCheckbox").checked &&
+          !hasSocketsFromCorruption
+        ) {
+          puzzleSockets = rollRange(2, 4);
+        }
+
+        // Calculate Ohm Enhanced Damage
+        const ohmED = calculateOhmDamage(corruption, puzzleSockets);
+
+        // Combine Enhanced Damage bonuses first
         const combined = combineEnhancedDamageFromRolled(
           prefixes,
           suffixes,
           craftStats,
           corruption
         );
-        const finalMinDamage = Math.floor(
-          damagemin * (1 + combined.totalED / 100)
-        );
-        const finalMaxDamage = Math.floor(
-          damagemax * (1 + combined.totalED / 100)
-        );
+
+        // Add Ohm damage to the total
+        const finalTotalED = combined.totalED + ohmED;
+
+        const finalMinDamage = Math.floor(damagemin * (1 + finalTotalED / 100));
+        const finalMaxDamage = Math.floor(damagemax * (1 + finalTotalED / 100));
 
         let html = "<strong>Crafted Grand Matron Bow</strong><br>";
-
-        // Track if item has sockets from corruption BEFORE processing anything
-        let hasSocketsFromCorruption =
-          corruption && corruption.type === "sockets";
 
         // Add corruption indicator if it's a corrupted rare
         if (corruption && corruption.type === "rare") {
@@ -981,10 +1090,16 @@
 
         html += `Damage: ${finalMinDamage}-${finalMaxDamage}<br><br>`;
 
-        // Add prefix stats
+        // Add prefix stats - but modify the Combined Enhanced Damage to include Ohm
         combined.prefixes.forEach((prefix) => {
-          if (prefix.name === "Combined" && prefix.isFromCorruption) {
-            html += `<div class="stat-line" style="color: #ff00ff;">${prefix.stat}</div>`;
+          if (prefix.name === "Combined") {
+            // Update the combined Enhanced Damage to include Ohm
+            const updatedStat = `+${finalTotalED}% Enhanced Damage`;
+            if (prefix.isFromCorruption) {
+              html += `<div class="stat-line" style="color: #ff00ff;">${updatedStat}</div>`;
+            } else {
+              html += `<div class="stat-line prefix">${updatedStat}</div>`;
+            }
           } else {
             html += `<div class="stat-line prefix">${prefix.stat}</div>`;
           }
@@ -1016,11 +1131,7 @@
         }
 
         // Add puzzle box sockets if checked and item doesn't already have sockets from corruption
-        if (
-          document.getElementById("puzzleCheckbox").checked &&
-          !hasSocketsFromCorruption
-        ) {
-          const puzzleSockets = rollRange(2, 4);
+        if (puzzleSockets > 0) {
           html += `<div class="stat-line puzzle">Socketed (${puzzleSockets})</div>`;
         }
 
