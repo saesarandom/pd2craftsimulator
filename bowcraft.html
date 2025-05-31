@@ -39,12 +39,12 @@
         font-family: "Open Sans";
         line-height: 1.1;
         display: inline-flex;
-        padding: 20px; /* Remove padding if not needed */
+        padding: 20px;
         margin: 0;
         width: fit-content;
-        position: absolute; /* Position it absolutely */
-        top: 60%; /* Center vertically */
-        left: 50%; /* Center horizontally */
+        position: absolute;
+        top: 60%;
+        left: 50%;
         transform: translate(-50%, -50%);
       }
       .stat-line {
@@ -56,6 +56,12 @@
       .suffix {
         color: #149cd6;
       }
+      .craft {
+        color: #ff6666;
+      }
+      .puzzle {
+        color: #808080;
+      }
     </style>
   </head>
   <body>
@@ -65,6 +71,16 @@
     <button onclick="generateBest100()">Generate 100 Rare Bows</button>
     <button onclick="generateBest1000()">Generate 1 000 Rare Bows</button>
     <button onclick="generateBest10000()">Generate 10 000 Rare Bows</button>
+
+    <label style="display: block; margin: 20px 0; color: #c7820b">
+      <input type="checkbox" id="corruptCheckbox" style="margin-right: 10px" />
+      Corrupt
+    </label>
+
+    <label style="display: block; margin: 20px 0; color: #c7820b">
+      <input type="checkbox" id="puzzleCheckbox" style="margin-right: 10px" />
+      Puzzle Box
+    </label>
 
     <div id="itemStats" class="item-stats" style="display: none">
       <div id="statsContent"></div>
@@ -237,21 +253,42 @@
           name: "Knight's",
           stat: "+[81-100] to Attack Rating, +[51-65]% Enhanced Damage",
           level: 1,
-          freq: 8,
+          freq: 7,
           group: 111,
         },
         {
           name: "Lord's",
           stat: "+[101-121] to Attack Rating, +[66-80]% Enhanced Damage",
           level: 1,
-          freq: 8,
+          freq: 6,
           group: 111,
         },
         {
           name: "King's",
           stat: "+[121-150] to Attack Rating, +[81-100]% Enhanced Damage",
           level: 1,
-          freq: 8,
+          freq: 5,
+          group: 111,
+        },
+        {
+          name: "Master's",
+          stat: "+[151-250] to Attack Rating, +[101-150]% Enhanced Damage",
+          level: 1,
+          freq: 5,
+          group: 111,
+        },
+        {
+          name: "Grandmaster's",
+          stat: "+[251-300] to Attack Rating, +[151-200]% Enhanced Damage",
+          level: 1,
+          freq: 4,
+          group: 111,
+        },
+        {
+          name: "Fool's",
+          stat: "+[48-49] to Maximum Damage, +[1632-1633] to Attack Rating",
+          level: 1,
+          freq: 7,
           group: 111,
         },
         {
@@ -414,34 +451,138 @@
         },
       ];
 
+      const corruptionAffixes = {
+        low: [
+          // 50% chance
+          { stat: "+[40-80]% Enhanced Damage", weight: 1 },
+          { stat: "+[150-250] to Attack Rating", weight: 1 },
+          {
+            stat: "+[100-150]% Enhanced Damage to Demons\n+200 to Attack Rating against Demons",
+            weight: 1,
+          },
+          {
+            stat: "+[100-150]% Enhanced Damage to Undead\n+200 to Attack Rating against Undead",
+            weight: 1,
+          },
+          { stat: "+10% Faster Cast Rate", weight: 1 },
+          { stat: "+[3-6] Life after each Hit", weight: 1 },
+          { stat: "+[3-6] Life after each Kill", weight: 1 },
+          { stat: "+[3-5] to Mana after each Kill", weight: 1 },
+          { stat: "[20-30]% Better Chance of Getting Magic Items", weight: 1 },
+          { stat: "Requirements -[25-50]%", weight: 1 },
+        ],
+        mid: [
+          // 30% chance
+          { stat: "+20% Faster Cast Rate", weight: 1 },
+          { stat: "+[30-40]% Increased Attack Speed", weight: 1 },
+          {
+            stat: "+[40-60]% Enhanced Damage\n5% Life Stolen per Hit",
+            weight: 1,
+          },
+          { stat: "-[40-60] Target Defense per Hit", weight: 1 },
+          { stat: "[20-30]% Chance of Crushing Blow", weight: 1 },
+          { stat: "[20-30]% Deadly Strike", weight: 1 },
+          { stat: "-[7-10]% to Enemy Fire Resistance", weight: 1 },
+          { stat: "-[7-10]% to Enemy Cold Resistance", weight: 1 },
+          { stat: "-[7-10]% to Enemy Lightning Resistance", weight: 1 },
+          { stat: "-[7-10]% to Enemy Poison Resistance", weight: 1 },
+        ],
+        high: [
+          // 20% chance
+          { stat: "+1 to All Skills", weight: 1 },
+          {
+            stat: "+30% Increased Attack Speed\n[20-30]% Chance of Crushing Blow",
+            weight: 1,
+          },
+          {
+            stat: "+[80-120]% Enhanced Damage\n+20% Increased Attack Speed",
+            weight: 1,
+          },
+          {
+            stat: "+[80-120]% Enhanced Damage\n+250 to Attack Rating",
+            weight: 1,
+          },
+          { stat: "+[50-70]% Enhanced Damage\n25% Deadly Strike", weight: 1 },
+          {
+            stat: "+[60-80]% Enhanced Damage\nIgnores Target's Defense",
+            weight: 1,
+          },
+          {
+            stat: "+10% Faster Cast Rate\n+5% to Fire Skill Damage",
+            weight: 1,
+          },
+          {
+            stat: "+10% Faster Cast Rate\n+5% to Cold Skill Damage",
+            weight: 1,
+          },
+          {
+            stat: "+10% Faster Cast Rate\n+5% to Lightning Skill Damage",
+            weight: 1,
+          },
+          {
+            stat: "+10% Faster Cast Rate\n+5% to Poison Skill Damage",
+            weight: 1,
+          },
+        ],
+      };
+
+      const socketRange = { min: 3, max: 6 };
+
+      function selectCorruption() {
+        const roll = Math.random() * 100;
+
+        if (roll < 25) {
+          // 25% chance for sockets
+          const numSockets = rollRange(socketRange.min, socketRange.max);
+          return {
+            type: "sockets",
+            stat: `Socketed (${numSockets})`,
+          };
+        } else if (roll < 75) {
+          // 50% chance for modifier
+          const modRoll = Math.random() * 100;
+          let pool;
+
+          if (modRoll < 50) {
+            pool = corruptionAffixes.low;
+          } else if (modRoll < 80) {
+            pool = corruptionAffixes.mid;
+          } else {
+            pool = corruptionAffixes.high;
+          }
+
+          const randomIndex = Math.floor(Math.random() * pool.length);
+          return {
+            type: "modifier",
+            stat: expandStat(pool[randomIndex].stat),
+          };
+        } else {
+          // 25% chance to turn into rare
+          return {
+            type: "rare",
+            stat: null,
+          };
+        }
+      }
+
       function rollRange(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
 
+      // Fixed craft stats that always appear
+      const fixedCraftStats = [
+        { stat: "+[50-80]% Enhanced Damage" },
+        { stat: "[3-6]% Life Stolen per Hit" },
+        { stat: "+[10-20] to Life" },
+      ];
+
       function expandStat(stat) {
-        // Replace [min-max] ranges with actual rolled values
         return stat.replace(/\[(\d+)-(\d+)\]/g, (match, min, max) => {
           return rollRange(parseInt(min), parseInt(max));
         });
       }
 
-      function getEnhancedDamage(prefixes) {
-        let totalED = 0;
-        prefixes.forEach((prefix) => {
-          const stat = prefix.stat;
-          // Look for ALL Enhanced Damage percentages in the stat string
-          const matches = stat.matchAll(/\+\[(\d+)-(\d+)\]% Enhanced Damage/g);
-          for (const match of matches) {
-            const min = parseInt(match[1]);
-            const max = parseInt(match[2]);
-            totalED += rollRange(min, max);
-          }
-        });
-        return totalED;
-      }
-
       function preRollAffix(affix) {
-        // Pre-roll all ranges in the stat and store the rolled version
         const rolledStat = affix.stat.replace(
           /\[(\d+)-(\d+)\]/g,
           (match, min, max) => {
@@ -459,30 +600,50 @@
         };
       }
 
-      function getEnhancedDamageFromRolled(prefixes) {
+      function getEnhancedDamageFromRolled(prefixes, craftStats, corruption) {
         let totalED = 0;
+
+        // Get ED from prefixes
         prefixes.forEach((prefix) => {
-          const stat = prefix.stat; // Use pre-rolled stat
-          // Look for ALL Enhanced Damage percentages in the rolled stat string
-          const matches = stat.matchAll(/\+(\d+)% Enhanced Damage/g);
+          const stat = prefix.stat;
+          // Only match plain Enhanced Damage, not "to Demons" or "to Undead"
+          const matches = stat.matchAll(/\+(\d+)% Enhanced Damage(?! to)/g);
           for (const match of matches) {
             totalED += parseInt(match[1]);
           }
         });
+
+        // Get ED from craft stats
+        craftStats.forEach((craft) => {
+          const stat = craft.stat;
+          // Only match plain Enhanced Damage
+          const match = stat.match(/\+(\d+)% Enhanced Damage(?! to)/);
+          if (match) {
+            totalED += parseInt(match[1]);
+          }
+        });
+
+        // Get ED from corruption - simplified regex
+        if (corruption) {
+          // Just look for the pattern anywhere in the string
+          const corruptMatch = corruption.match(
+            /\+(\d+)% Enhanced Damage(?! to)/
+          );
+          if (corruptMatch) {
+            totalED += parseInt(corruptMatch[1]);
+          }
+        }
+
         return totalED;
       }
-
       function selectAffixByFrequency(availableAffixes) {
-        // Calculate total frequency
         const totalFrequency = availableAffixes.reduce(
           (sum, affix) => sum + affix.freq,
           0
         );
 
-        // Generate random number between 1 and totalFrequency
         let randomValue = Math.floor(Math.random() * totalFrequency) + 1;
 
-        // Find which affix this random value corresponds to
         let currentSum = 0;
         for (const affix of availableAffixes) {
           currentSum += affix.freq;
@@ -491,7 +652,6 @@
           }
         }
 
-        // Fallback (should never happen)
         return availableAffixes[0];
       }
 
@@ -500,37 +660,52 @@
         let availablePrefixes = prefixes.filter((p) => p.level <= level);
         let availableSuffixes = suffixes.filter((s) => s.level <= level);
 
-        const numPrefixes = rollRange(2, 3);
+        let corruption = null;
+        let isCorruptedRare = false;
+
+        if (document.getElementById("corruptCheckbox").checked) {
+          corruption = selectCorruption();
+
+          if (corruption.type === "rare") {
+            // This becomes a rare without craft stats
+            isCorruptedRare = true;
+          }
+        }
+
+        // Roll the fixed craft stats only if not corrupted to rare
+        const rolledCraftStats = isCorruptedRare
+          ? []
+          : fixedCraftStats.map((craft) => ({
+              stat: expandStat(craft.stat),
+            }));
+
+        const numPrefixes = rollRange(1, 3);
         const selectedPrefixes = [];
         const usedPrefixGroups = new Set();
 
         for (let i = 0; i < numPrefixes; i++) {
-          // Filter out affixes from already used groups
           const validPrefixes = availablePrefixes.filter(
             (p) => !usedPrefixGroups.has(p.group)
           );
 
-          if (validPrefixes.length === 0) break; // No more valid prefixes
+          if (validPrefixes.length === 0) break;
 
-          // Select affix based on frequency
           const selectedPrefix = selectAffixByFrequency(validPrefixes);
           selectedPrefixes.push(preRollAffix(selectedPrefix));
           usedPrefixGroups.add(selectedPrefix.group);
         }
 
-        const numSuffixes = rollRange(2, 3);
+        const numSuffixes = rollRange(4 - numPrefixes, 3);
         const selectedSuffixes = [];
         const usedSuffixGroups = new Set();
 
         for (let i = 0; i < numSuffixes; i++) {
-          // Filter out affixes from already used groups
           const validSuffixes = availableSuffixes.filter(
             (s) => !usedSuffixGroups.has(s.group)
           );
 
-          if (validSuffixes.length === 0) break; // No more valid suffixes
+          if (validSuffixes.length === 0) break;
 
-          // Select affix based on frequency
           const selectedSuffix = selectAffixByFrequency(validSuffixes);
           selectedSuffixes.push(preRollAffix(selectedSuffix));
           usedSuffixGroups.add(selectedSuffix.group);
@@ -539,31 +714,79 @@
         return {
           prefixes: selectedPrefixes,
           suffixes: selectedSuffixes,
-          enhancedDamage: getEnhancedDamageFromRolled(selectedPrefixes),
+          craftStats: rolledCraftStats,
+          corruption: corruption,
+          isCorruptedRare: isCorruptedRare,
+          enhancedDamage: getEnhancedDamageFromRolled(
+            selectedPrefixes,
+            rolledCraftStats,
+            corruption?.type === "modifier" ? corruption.stat : null
+          ),
         };
       }
-
-      function combineEnhancedDamageFromRolled(prefixes, suffixes) {
+      function combineEnhancedDamageFromRolled(
+        prefixes,
+        suffixes,
+        craftStats,
+        corruption
+      ) {
         let totalED = 0;
         let newPrefixes = [];
         let newSuffixes = [];
+        let newCraftStats = [];
+        let corruptionED = 0;
+        let newCorruption = corruption;
 
-        // Process prefixes - combine Enhanced Damage and handle complex stats
+        // Process corruption for ED only if it's a modifier
+        if (corruption && corruption.type === "modifier" && corruption.stat) {
+          const corruptMatch = corruption.stat.match(
+            /\+(\d+)% Enhanced Damage(?! to)/
+          );
+          if (corruptMatch) {
+            corruptionED = parseInt(corruptMatch[1]);
+            totalED += corruptionED;
+
+            // Remove the Enhanced Damage from corruption string
+            const lines = corruption.stat.split("\n");
+            const filteredLines = lines.filter(
+              (line) => !line.match(/\+\d+% Enhanced Damage(?! to)/)
+            );
+            const newStat = filteredLines.join("\n");
+
+            // Update corruption object
+            if (newStat.trim() === "") {
+              newCorruption = null;
+            } else {
+              newCorruption = { ...corruption, stat: newStat };
+            }
+          }
+        }
+
+        // Process craft stats first
+        craftStats.forEach((craft) => {
+          const stat = craft.stat;
+          const match = stat.match(/\+(\d+)% Enhanced Damage(?! to)/);
+          if (match) {
+            totalED += parseInt(match[1]);
+          } else {
+            newCraftStats.push(craft);
+          }
+        });
+
+        // Process prefixes
         prefixes.forEach((prefix) => {
-          const stat = prefix.stat; // Already rolled stat
+          const stat = prefix.stat;
 
-          // Special handling for "Sharp" which has both Attack Rating and Enhanced Damage
           if (
             stat.includes("to Attack Rating") &&
-            stat.includes("% Enhanced Damage")
+            stat.includes("% Enhanced Damage") &&
+            !stat.includes("% Enhanced Damage to")
           ) {
-            // Extract Enhanced Damage part
-            const edMatch = stat.match(/\+(\d+)% Enhanced Damage/);
+            const edMatch = stat.match(/\+(\d+)% Enhanced Damage(?! to)/);
             if (edMatch) {
               totalED += parseInt(edMatch[1]);
             }
 
-            // Keep only the Attack Rating part
             const arMatch = stat.match(/\+(\d+) to Attack Rating/);
             if (arMatch) {
               newPrefixes.push({
@@ -574,22 +797,18 @@
                 group: prefix.group,
               });
             }
-          }
-          // Handle simple Enhanced Damage only
-          else if (stat.match(/^\+(\d+)% Enhanced Damage$/)) {
-            const match = stat.match(/\+(\d+)% Enhanced Damage/);
+          } else if (stat.match(/^\+(\d+)% Enhanced Damage$/)) {
+            const match = stat.match(/\+(\d+)% Enhanced Damage$/);
             totalED += parseInt(match[1]);
-          }
-          // Keep all other prefixes as-is
-          else {
+          } else {
             newPrefixes.push(prefix);
           }
         });
 
-        // Process suffixes (in case Enhanced Damage appears there)
+        // Process suffixes
         suffixes.forEach((suffix) => {
-          const stat = suffix.stat; // Already rolled stat
-          const match = stat.match(/\+(\d+)% Enhanced Damage/);
+          const stat = suffix.stat;
+          const match = stat.match(/\+(\d+)% Enhanced Damage(?! to)/);
           if (match) {
             totalED += parseInt(match[1]);
           } else {
@@ -605,74 +824,25 @@
             level: 1,
             freq: 1,
             group: 999,
+            // Mark if corruption contributed to make it purple
+            isFromCorruption: corruptionED > 0,
           });
         }
 
-        return { prefixes: newPrefixes, suffixes: newSuffixes, totalED };
+        return {
+          prefixes: newPrefixes,
+          suffixes: newSuffixes,
+          craftStats: newCraftStats,
+          corruption: newCorruption,
+          totalED,
+        };
       }
 
-      function generateBest100() {
-        let bestItem = null;
-        let highestED = -1;
-
-        // Generate 100 items and find the one with highest Enhanced Damage
-        for (let i = 0; i < 100; i++) {
-          const item = generateSingleItem();
-          if (item.enhancedDamage > highestED) {
-            highestED = item.enhancedDamage;
-            bestItem = item;
-          }
-        }
-
-        // Display the best item
-        if (bestItem) {
-          displayItem(bestItem.prefixes, bestItem.suffixes, highestED);
-        }
-      }
-
-      function generateBest1000() {
-        let bestItem = null;
-        let highestED = -1;
-
-        // Generate 1000 items and find the one with highest Enhanced Damage
-        for (let i = 0; i < 1000; i++) {
-          const item = generateSingleItem();
-          if (item.enhancedDamage > highestED) {
-            highestED = item.enhancedDamage;
-            bestItem = item;
-          }
-        }
-
-        // Display the best item
-        if (bestItem) {
-          displayItem(bestItem.prefixes, bestItem.suffixes, highestED);
-        }
-      }
-
-      function generateBest10000() {
-        let bestItem = null;
-        let highestED = -1;
-
-        // Generate 1000 items and find the one with highest Enhanced Damage
-        for (let i = 0; i < 10000; i++) {
-          const item = generateSingleItem();
-          if (item.enhancedDamage > highestED) {
-            highestED = item.enhancedDamage;
-            bestItem = item;
-          }
-        }
-
-        // Display the best item
-        if (bestItem) {
-          displayItem(bestItem.prefixes, bestItem.suffixes, highestED);
-        }
-      }
-
+      // Functions to generate best items
       function generateBest10() {
         let bestItem = null;
         let highestED = -1;
 
-        // Generate 10 items and find the one with highest Enhanced Damage
         for (let i = 0; i < 10; i++) {
           const item = generateSingleItem();
           if (item.enhancedDamage > highestED) {
@@ -681,102 +851,116 @@
           }
         }
 
-        // Display the best item
         if (bestItem) {
-          displayItem(bestItem.prefixes, bestItem.suffixes, highestED);
+          displayItem(
+            bestItem.prefixes,
+            bestItem.suffixes,
+            bestItem.craftStats,
+            bestItem.corruption,
+            highestED
+          );
+        }
+      }
+
+      function generateBest100() {
+        let bestItem = null;
+        let highestED = -1;
+
+        for (let i = 0; i < 100; i++) {
+          const item = generateSingleItem();
+          if (item.enhancedDamage > highestED) {
+            highestED = item.enhancedDamage;
+            bestItem = item;
+          }
+        }
+
+        if (bestItem) {
+          displayItem(
+            bestItem.prefixes,
+            bestItem.suffixes,
+            bestItem.craftStats,
+            bestItem.corruption,
+            highestED
+          );
+        }
+      }
+
+      function generateBest1000() {
+        let bestItem = null;
+        let highestED = -1;
+
+        for (let i = 0; i < 1000; i++) {
+          const item = generateSingleItem();
+          if (item.enhancedDamage > highestED) {
+            highestED = item.enhancedDamage;
+            bestItem = item;
+          }
+        }
+
+        if (bestItem) {
+          displayItem(
+            bestItem.prefixes,
+            bestItem.suffixes,
+            bestItem.craftStats,
+            bestItem.corruption,
+            highestED
+          );
+        }
+      }
+
+      function generateBest10000() {
+        let bestItem = null;
+        let highestED = -1;
+
+        for (let i = 0; i < 10000; i++) {
+          const item = generateSingleItem();
+          if (item.enhancedDamage > highestED) {
+            highestED = item.enhancedDamage;
+            bestItem = item;
+          }
+        }
+
+        if (bestItem) {
+          displayItem(
+            bestItem.prefixes,
+            bestItem.suffixes,
+            bestItem.craftStats,
+            bestItem.corruption,
+            highestED
+          );
         }
       }
 
       function generateItem() {
         const item = generateSingleItem();
-        displayItem(item.prefixes, item.suffixes, item.enhancedDamage);
+        displayItem(
+          item.prefixes,
+          item.suffixes,
+          item.craftStats,
+          item.corruption,
+          item.enhancedDamage
+        );
       }
 
-      function combineEnhancedDamage(prefixes, suffixes) {
-        let totalED = 0;
-        let newPrefixes = [];
-        let newSuffixes = [];
-
-        // Process prefixes - combine Enhanced Damage and handle complex stats
-        prefixes.forEach((prefix) => {
-          const stat = prefix.stat;
-
-          // Special handling for "Sharp" which has both Attack Rating and Enhanced Damage
-          if (
-            stat.includes("to Attack Rating") &&
-            stat.includes("% Enhanced Damage")
-          ) {
-            // Extract Enhanced Damage part
-            const edMatch = stat.match(/\+\[(\d+)-(\d+)\]% Enhanced Damage/);
-            if (edMatch) {
-              const min = parseInt(edMatch[1]);
-              const max = parseInt(edMatch[2]);
-              totalED += rollRange(min, max);
-            }
-
-            // Keep only the Attack Rating part
-            const arMatch = stat.match(/\+\[(\d+)-(\d+)\] to Attack Rating/);
-            if (arMatch) {
-              const arMin = parseInt(arMatch[1]);
-              const arMax = parseInt(arMatch[2]);
-              const rolledAR = rollRange(arMin, arMax);
-              newPrefixes.push({
-                name: prefix.name,
-                stat: `+${rolledAR} to Attack Rating`,
-                level: prefix.level,
-                freq: prefix.freq,
-                group: prefix.group,
-              });
-            }
-          }
-          // Handle simple Enhanced Damage only
-          else if (stat.match(/^\+\[(\d+)-(\d+)\]% Enhanced Damage$/)) {
-            const match = stat.match(/\+\[(\d+)-(\d+)\]% Enhanced Damage/);
-            const min = parseInt(match[1]);
-            const max = parseInt(match[2]);
-            totalED += rollRange(min, max);
-          }
-          // Keep all other prefixes as-is
-          else {
-            newPrefixes.push(prefix);
-          }
-        });
-
-        // Process suffixes (in case Enhanced Damage appears there)
-        suffixes.forEach((suffix) => {
-          const stat = suffix.stat;
-          const match = stat.match(/\+\[(\d+)-(\d+)\]% Enhanced Damage/);
-          if (match) {
-            const min = parseInt(match[1]);
-            const max = parseInt(match[2]);
-            totalED += rollRange(min, max);
-          } else {
-            newSuffixes.push(suffix);
-          }
-        });
-
-        // Add combined Enhanced Damage if any was found
-        if (totalED > 0) {
-          newPrefixes.unshift({
-            name: "Combined",
-            stat: `+${totalED}% Enhanced Damage`,
-            level: 1,
-            freq: 1,
-            group: 999,
-          });
-        }
-
-        return { prefixes: newPrefixes, suffixes: newSuffixes, totalED };
-      }
-
-      function displayItem(prefixes, suffixes, enhancedDamage = null) {
+      function displayItem(
+        prefixes,
+        suffixes,
+        craftStats,
+        corruption,
+        enhancedDamage = null
+      ) {
         const statsDiv = document.getElementById("statsContent");
         const itemDiv = document.getElementById("itemStats");
         let damagemin = 17;
         let damagemax = 87;
 
-        // Combine Enhanced Damage bonuses from pre-rolled stats
-        const combined = combineEnhancedDamageFromRolled(prefixes, suffixes);
+        // Combine Enhanced Damage bonuses
+        const combined = combineEnhancedDamageFromRolled(
+          prefixes,
+          suffixes,
+          craftStats,
+          corruption
+        );
         const finalMinDamage = Math.floor(
           damagemin * (1 + combined.totalED / 100)
         );
@@ -784,18 +968,61 @@
           damagemax * (1 + combined.totalED / 100)
         );
 
-        let html = "<strong>Rare Grand Matron Bow</strong><br>";
+        let html = "<strong>Crafted Grand Matron Bow</strong><br>";
+
+        // Track if item has sockets from corruption BEFORE processing anything
+        let hasSocketsFromCorruption =
+          corruption && corruption.type === "sockets";
+
+        // Add corruption indicator if it's a corrupted rare
+        if (corruption && corruption.type === "rare") {
+          html += "<span style='color: #ff00ff;'>(Corrupted Rare)</span><br>";
+        }
+
         html += `Damage: ${finalMinDamage}-${finalMaxDamage}<br><br>`;
 
-        // Add prefix stats (no need to expandStat since they're already rolled)
+        // Add prefix stats
         combined.prefixes.forEach((prefix) => {
-          html += `<div class="stat-line prefix">${prefix.stat}</div>`;
+          if (prefix.name === "Combined" && prefix.isFromCorruption) {
+            html += `<div class="stat-line" style="color: #ff00ff;">${prefix.stat}</div>`;
+          } else {
+            html += `<div class="stat-line prefix">${prefix.stat}</div>`;
+          }
         });
 
-        // Add suffix stats (no need to expandStat since they're already rolled)
+        // Add suffix stats
         combined.suffixes.forEach((suffix) => {
           html += `<div class="stat-line suffix">${suffix.stat}</div>`;
         });
+
+        // Add craft stats (non-ED ones)
+        combined.craftStats.forEach((craft) => {
+          html += `<div class="stat-line craft">${craft.stat}</div>`;
+        });
+
+        // Add corruption if present
+        if (combined.corruption) {
+          if (combined.corruption.type === "sockets") {
+            html += `<div class="stat-line" style="color: #ff00ff;">${combined.corruption.stat}</div>`;
+          } else if (
+            combined.corruption.type === "modifier" &&
+            combined.corruption.stat
+          ) {
+            html += `<div class="stat-line" style="color: #ff00ff;">${combined.corruption.stat.replace(
+              /\n/g,
+              "<br>"
+            )}</div>`;
+          }
+        }
+
+        // Add puzzle box sockets if checked and item doesn't already have sockets from corruption
+        if (
+          document.getElementById("puzzleCheckbox").checked &&
+          !hasSocketsFromCorruption
+        ) {
+          const puzzleSockets = rollRange(2, 4);
+          html += `<div class="stat-line puzzle">Socketed (${puzzleSockets})</div>`;
+        }
 
         statsDiv.innerHTML = html;
         itemDiv.style.display = "block";
